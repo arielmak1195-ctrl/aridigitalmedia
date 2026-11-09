@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARI DIGITAL MEDIA | פלטפורמת תוכן, בלוג ופודקאסט</title>
+    <!-- ספריית Supabase הרשמית -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ספריית Google Identity Services הרשמית -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-subtle: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --primary-light: #e0f2fe;
+            --accent: #d97706;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+            --radius-xl: 22px;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+            --shadow-md: 0 14px 32px -6px rgba(15, 23, 42, 0.07);
+            --shadow-lg: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
+        }
+
+        body.reading-comfort {
+            --bg-body: #fdfbf7;
+            --bg-surface: #ffffff;
+            --text-primary: #1c1917;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.65;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding-bottom: 95px;
+            transition: background-color 0.25s;
+        }
+
+        /* פס התקדמות קריאה */
+        #reading-progress {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #0284c7, #38bdf8, #f59e0b);
+            width: 0%;
+            z-index: 3000;
+            transition: width 0.1s;
+        }
+
+        /* תפריט עליון */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 38px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        #header-logo-img {
+            height: 54px;
+            width: auto;
+            border-radius: 8px;
+            display: none;
+            object-fit: contain;
+        }
+
+        #header-default-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-badge {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #0284c7, #1e3a8a);
+            color: #ffffff;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 20px;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 14px rgba(2, 132, 199, 0.25);
+        }
+
+        .brand-titles h1 {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+            line-height: 1.1;
+        }
+
+        .brand-titles span {
+            font-size: 11px;
+            color: var(--primary);
+            font-weight: 700;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+        }
+
+        nav {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .nav-btn:hover {
+            background: var(--bg-subtle);
+            color: var(--primary);
+        }
+
+        .nav-btn.active {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .nav-btn.google-pill {
+            border: 1px solid var(--border);
+            background: #ffffff;
+            padding: 6px 14px;
+            border-radius: 30px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-user-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .nav-btn.admin-trigger {
+            background: var(--bg-subtle);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        /* מבנה מרכזי */
+        main {
+            flex: 1;
+            max-width: 1120px;
+            width: 100%;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .page-section {
+            display: none;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 25px;
+        }
+
+        .hero-banner {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 35px;
+            align-items: center;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+            border-radius: var(--radius-xl);
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        h2.section-title {
+            font-size: 32px;
+            font-weight: 850;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        p.section-subtitle {
+            color: var(--text-secondary);
+            font-size: 16.5px;
+            margin-bottom: 22px;
+        }
+
+        /* כפתורים */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--primary);
+            color: #ffffff;
+            padding: 11px 22px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 15px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: #ffffff;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-subtle);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        /* כפתור Google יוקרתי */
+        .btn-google-official {
+            width: 100%;
+            background: #ffffff;
+            color: #1f2937;
+            border: 1px solid #cbd5e1;
+            padding: 13px 20px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+
+        .btn-google-official:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+
+        /* סרגל סינון קטגוריות וחיפוש */
+        .filter-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .category-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .cat-pill {
+            padding: 7px 16px;
+            border-radius: 25px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cat-pill.active, .cat-pill:hover {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        .search-input {
+            min-width: 280px;
+            padding: 10px 16px;
+            border-radius: 25px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        /* כרטיסיות תוכן */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+            gap: 25px;
+        }
+
+        .item-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .item-card img {
+            width: 100%;
+            height: 205px;
+            object-fit: cover;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .item-card-body {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .item-title {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .item-title:hover {
+            color: var(--primary);
+        }
+
+        .item-text {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            white-space: pre-line;
+            flex: 1;
+        }
+
+        .item-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        .action-chip {
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            padding: 6px 11px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s;
+            color: var(--text-secondary);
+        }
+
+        .action-chip:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: var(--primary-light);
+        }
+
+        .action-chip.saved {
+            background: #fef3c7;
+            color: #b45309;
+            border-color: #fde68a;
+        }
+
+        /* לוח סטטיסטיקות מנהל (KPIs) */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        .kpi-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .kpi-num {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .kpi-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        /* טפסים */
+        .form-group { margin-bottom: 15px; }
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            font-size: 13.5px;
+            margin-bottom: 6px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-family: inherit;
+            background: var(--bg-body);
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #ffffff;
+        }
+        textarea.form-control { min-height: 110px; resize: vertical; }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+
+        /* נגן פודקאסט אולפני קבוע בתחתית */
+        #sticky-audio-player {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            left: 0;
+            background: rgba(15, 23, 42, 0.97);
+            backdrop-filter: blur(16px);
+            color: #ffffff;
+            padding: 12px 35px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            z-index: 2000;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.2);
+        }
+
+        .player-controls-extra {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-mini-btn {
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border: none;
+            padding: 6px 11px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .player-mini-btn:hover { background: var(--primary); }
+
+        /* אנימציית גלי קול (Equalizer) */
+        .eq-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 20px;
+        }
+        .eq-bar {
+            width: 4px;
+            background: #38bdf8;
+            border-radius: 2px;
+            animation: eqBounce 0.8s infinite ease-in-out alternate;
+        }
+        .eq-bar:nth-child(2) { animation-delay: 0.2s; }
+        .eq-bar:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes eqBounce {
+            0% { height: 5px; }
+            100% { height: 20px; }
+        }
+
+        /* חלוניות קופצות (Modals) - Google Account Chooser + קורא מאמרים */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2500;
+            padding: 20px;
+        }
+
+        .google-chooser-card {
+            background: #ffffff;
+            border-radius: 20px;
+            max-width: 430px;
+            width: 100%;
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .google-account-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            text-align: right;
+            transition: all 0.15s;
+        }
+
+        .google-account-row:hover {
+            background: #f0f9ff;
+            border-color: var(--primary);
+        }
+
+        .reader-modal-card {
+            background: var(--bg-surface);
+            border-radius: 20px;
+            max-width: 780px;
+            width: 100%;
+            max-height: 88vh;
+            overflow-y: auto;
+            padding: 40px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        #toast-notification {
+            position: fixed;
+            bottom: 105px;
+            left: 25px;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 13px 22px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            z-index: 3500;
+            border-right: 4px solid var(--primary);
+        }
+
+        footer {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            text-align: center;
+            padding: 28px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 12px; padding: 14px 18px; }
+            .hero-banner, .admin-grid { grid-template-columns: 1fr; }
+            #sticky-audio-player { flex-direction: column; padding: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="reading-progress"></div>
+    <div id="toast-notification"></div>
+
+    <!-- ================= חלונית בחירת חשבון GOOGLE (Google Account Chooser) ================= -->
+    <div id="google-auth-modal" class="modal-overlay">
+        <div class="google-chooser-card">
+            <svg width="38" height="38" viewBox="0 0 48 48" style="margin-bottom: 10px;">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            <h3 style="font-size: 21px; font-weight: 800; margin-bottom: 4px;">בחר חשבון Google</h3>
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 20px;">כדי להמשיך אל <strong>ARI DIGITAL MEDIA</strong></p>
+
+            <!-- רשימת חשבונות שמורים לבחירה מהירה בקליק -->
+            <div id="saved-google-accounts-list"></div>
+
+            <!-- הוספת חשבון Google חדש -->
+            <div id="new-google-account-form" style="text-align: right; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+                <div class="form-group">
+                    <label>שם מלא בחשבון ה-Google</label>
+                    <input type="text" id="g-modal-name" class="form-control" placeholder="למשל: ארי (ARI)">
+                </div>
+                <div class="form-group">
+                    <label>כתובת Gmail</label>
+                    <input type="email" id="g-modal-email" class="form-control" placeholder="yourname@gmail.com">
+                </div>
+                <button class="btn" style="width: 100%; margin-top: 6px;" onclick="confirmGoogleAccountLogin()">התחבר עם חשבון Google זה</button>
+            </div>
+
+            <button class="btn btn-outline" style="width: 100%; margin-top: 12px;" onclick="closeGoogleModal()">סגור</button>
+        </div>
+    </div>
+
+    <!-- ================= חלונית קריאת מאמר במסך מלא (Reader Mode) ================= -->
+    <div id="article-reader-modal" class="modal-overlay">
+        <div class="reader-modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                <div style="display: flex; gap: 8px;">
+                    <button class="action-chip" onclick="adjustReaderFont(2)">A+ הגדל כתב</button>
+                    <button class="action-chip" onclick="adjustReaderFont(-2)">A- הקטן כתב</button>
+                    <button class="action-chip" id="reader-tts-btn">🔊 הקרא מאמר</button>
+                </div>
+                <button class="btn btn-outline" style="padding: 6px 14px;" onclick="closeArticleReader()">✖ סגור</button>
+            </div>
+            <span class="badge" id="reader-cat"></span>
+            <h2 id="reader-title" style="font-size: 30px; font-weight: 900; margin-bottom: 10px;"></h2>
+            <div id="reader-meta" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;"></div>
+            <img id="reader-img" src="" style="width: 100%; max-height: 360px; object-fit: cover; border-radius: 14px; margin-bottom: 22px; display: none;">
+            <div id="reader-body" style="font-size: 18px; line-height: 1.85; white-space: pre-line; color: var(--text-primary);"></div>
+        </div>
+    </div>
+
+    <!-- ================= תפריט עליון ================= -->
+    <header>
+        <a onclick="navigateTo('home')" class="brand-area">
+            <img id="header-logo-img" src="" alt="ARI DIGITAL MEDIA">
+            <div id="header-default-logo">
+                <div class="logo-badge">ARI</div>
+                <div class="brand-titles">
+                    <h1>ARI DIGITAL MEDIA</h1>
+                    <span>בלוג ופודקאסט אישי</span>
+                </div>
+            </div>
+        </a>
+
+        <nav>
+            <button class="nav-btn active" onclick="navigateTo('home')" id="nav-home">בית</button>
+            <button class="nav-btn" onclick="navigateTo('blog')" id="nav-blog">בלוג</button>
+            <button class="nav-btn" onclick="navigateTo('podcast')" id="nav-podcast">פודקאסט</button>
+            <button class="nav-btn" onclick="navigateTo('archive')" id="nav-archive">ארכיון</button>
+            <button class="nav-btn" onclick="navigateTo('about')" id="nav-about">אודות</button>
+            <button class="nav-btn" onclick="navigateTo('contact')" id="nav-contact">צור קשר</button>
+            <button class="nav-btn" onclick="toggleComfortMode()" title="מצב נוחות קריאה">📖 נוחות קריאה</button>
+            <button class="nav-btn google-pill" onclick="navigateTo('auth')" id="nav-auth">
+                <span id="nav-user-label">👤 התחברות עם Google</span>
+            </button>
+            <button class="nav-btn admin-trigger" onclick="navigateTo('admin')" id="nav-admin">⚙️ ניהול</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- ================= 1. עמוד הבית ================= -->
+        <section id="page-home" class="page-section active">
+            <div class="card hero-banner">
+                <div>
+                    <span class="badge">המרחב הרשמי של ARI</span>
+                    <h2 class="section-title" id="hero-title-display">ברוכים הבאים ל-ARI DIGITAL MEDIA</h2>
+                    <p class="section-subtitle" id="hero-desc-display">המקום שבו כתיבה מהלב, מחשבות מעמיקות ופרקי פודקאסט מקוריים נפגשים. הכל אותנטי, אישי וללא פילטרים.</p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="btn" onclick="navigateTo('blog')">✍️ כניסה לבלוג</button>
+                        <button class="btn btn-outline" onclick="navigateTo('podcast')">🎧 האזנה לפודקאסט</button>
+                        <button class="btn btn-outline" onclick="openGoogleChooser()">
+                            <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                            חיבור מהיר עם Google
+                        </button>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <img id="hero-custom-img" src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=800&q=80" alt="אולפן וכתיבה" style="width: 100%; max-height: 290px; object-fit: cover; border-radius: 16px; box-shadow: var(--shadow-md);">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 25px;">
+                <div class="card" style="margin-bottom: 0;">
+                    <h3 style="margin-bottom: 10px; font-size: 19px;">✍️ אחרון בבלוג</h3>
+                    <div id="home-latest-blog"></div>
+                </div>
+                <div class="card" style="margin-bottom: 0;">
+                    <h3 style="margin-bottom: 10px; font-size: 19px;">🎙️ אחרון בפודקאסט</h3>
+                    <div id="home-latest-podcast"></div>
+                </div>
+            </div>
+
+            <!-- הרשמה לעדכונים וניוזלטר -->
+            <div class="card" style="background: linear-gradient(135deg, #0f172a, #1e3a8a); color: #ffffff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div>
+                    <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 4px;">📬 קבלו עדכון כשעולה פוסט או פרק חדש!</h3>
+                    <p style="color: #cbd5e1; font-size: 14.5px;">הצטרפו לרשימת התפוצה של ARI DIGITAL MEDIA ללא ספאם.</p>
+                </div>
+                <form onsubmit="subscribeNewsletter(event)" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="email" id="newsletter-email" required placeholder="כתובת ה-Gmail שלך..." style="padding: 12px 16px; border-radius: 10px; border: none; min-width: 240px; font-family: inherit;">
+                    <button type="submit" class="btn" style="background: #38bdf8; color: #0f172a;">הרשמה לעדכונים</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ================= 2. עמוד הבלוג ================= -->
+        <section id="page-blog" class="page-section">
+            <div style="margin-bottom: 20px;">
+                <h2 class="section-title">הבלוג של ARI</h2>
+                <p class="section-subtitle" style="margin-bottom: 14px;">מאמרים, תובנות, הקראה קולית ושיח פתוח</p>
+                
+                <div class="filter-bar">
+                    <div class="category-pills" id="blog-categories-bar">
+                        <button class="cat-pill active" onclick="setBlogCategory('הכל')">הכל</button>
+                        <button class="cat-pill" onclick="setBlogCategory('מחשבות ואמונה')">מחשבות ואמונה</button>
+                        <button class="cat-pill" onclick="setBlogCategory('טכנולוגיה ומדיה')">טכנולוגיה ומדיה</button>
+                        <button class="cat-pill" onclick="setBlogCategory('אישי')">אישי</button>
+                    </div>
+                    <input type="text" id="blog-search" class="search-input" placeholder="🔍 חיפוש חופשי במאמרים..." oninput="renderAllContent()">
+                </div>
+            </div>
+            <div id="blog-container" class="content-grid"></div>
+        </section>
+
+        <!-- ================= 3. עמוד הפודקאסט ================= -->
+        <section id="page-podcast" class="page-section">
+            <div class="filter-bar" style="margin-bottom: 24px;">
+                <div>
+                    <h2 class="section-title">הפודקאסט של ARI</h2>
+                    <p class="section-subtitle" style="margin-bottom: 0;">האזנה ישירה בנגן החכם עם שליטה במהירות השמעה</p>
+                </div>
+                <input type="text" id="podcast-search" class="search-input" placeholder="🔍 חפש פרק בפודקאסט..." oninput="renderAllContent()">
+            </div>
+            <div id="podcast-container" class="content-grid"></div>
+        </section>
+
+        <!-- ================= 4. עמוד ארכיון ================= -->
+        <section id="page-archive" class="page-section">
+            <div class="card">
+                <h2 class="section-title">ארכיון תכנים מלא</h2>
+                <p class="section-subtitle">כל הפרסומים של ARI DIGITAL MEDIA במקום אחד מסודר.</p>
+                <div id="archive-list"></div>
+            </div>
+        </section>
+
+        <!-- ================= 5. עמוד אודות ================= -->
+        <section id="page-about" class="page-section">
+            <div class="card">
+                <span class="badge">הסיפור שלי</span>
+                <h2 class="section-title">אודות ARI DIGITAL MEDIA</h2>
+                <div id="about-content-display" style="font-size: 17px; color: var(--text-secondary); white-space: pre-line; line-height: 1.85;"></div>
+            </div>
+        </section>
+
+        <!-- ================= 6. עמוד צור קשר ================= -->
+        <section id="page-contact" class="page-section">
+            <div class="card" style="max-width: 650px; margin: 0 auto;">
+                <h2 class="section-title">צור קשר ישיר</h2>
+                <p class="section-subtitle">השאירו הודעה, רעיון לפרק או משוב אישי:</p>
+                <form onsubmit="submitContactForm(event)">
+                    <div class="form-group">
+                        <label>שם מלא</label>
+                        <input type="text" id="contact-name" class="form-control" required placeholder="השם שלך...">
+                    </div>
+                    <div class="form-group">
+                        <label>אימייל או טלפון</label>
+                        <input type="text" id="contact-info" class="form-control" required placeholder="כתובת מייל או מספר נייד...">
+                    </div>
+                    <div class="form-group">
+                        <label>תוכן ההודעה</label>
+                        <textarea id="contact-message" class="form-control" required placeholder="כתוב כאן את ההודעה..."></textarea>
+                    </div>
+                    <button type="submit" class="btn">✉️ שלח הודעה אל ARI</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ================= 7. אזור אישי וחיבור חשבון GOOGLE ================= -->
+        <section id="page-auth" class="page-section">
+            <div id="user-logged-out-view" class="card" style="max-width: 490px; margin: 0 auto; text-align: center;">
+                <span class="badge">קהילת הקוראים והמאזינים</span>
+                <h2 class="section-title">כניסה לאזור האישי</h2>
+                <p class="section-subtitle">התחבר בקליק אחד באמצעות חשבון Google שלך כדי לשמור תכנים, להגיב עם שמך ותמונתך ולהסתנכרן באתר.</p>
+
+                <!-- כפתור Google מרכזי -->
+                <button class="btn-google-official" onclick="openGoogleChooser()">
+                    <svg width="22" height="22" viewBox="0 0 48 48">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    </svg>
+                    <span>המשך באמצעות חשבון Google</span>
+                </button>
+
+                <!-- מיכל לכפתור Google GSI רשמי במידה והוזן Client ID -->
+                <div id="g_id_signin_container" style="display: flex; justify-content: center; margin-bottom: 12px;"></div>
+            </div>
+
+            <!-- תצוגת פרופיל Google מחובר -->
+            <div id="user-logged-in-view" style="display: none;">
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                    <div style="display: flex; align-items: center; gap: 18px;">
+                        <img id="user-profile-pic" src="" alt="פרופיל" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--primary);">
+                        <div>
+                            <span class="badge" style="margin-bottom: 4px;">✓ מחובר עם Google</span>
+                            <h2 class="section-title" style="font-size: 25px; margin-bottom: 2px;">שלום, <span id="user-name-display"></span>!</h2>
+                            <p style="color: var(--text-secondary); font-size: 14.5px;" id="user-email-display"></p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-outline" onclick="openGoogleChooser()">🔄 החלף חשבון Google</button>
+                        <button class="btn btn-outline" onclick="handleUserLogout()">🚪 התנתק</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 15px; font-size: 20px;">🔖 הספרייה האישית שלי (פוסטים ופרקים ששמרת)</h3>
+                    <div id="user-saved-items"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 8. אזור ניהול מוגן בסיסמה (311745) ================= -->
+        <section id="page-admin" class="page-section">
+            <div id="admin-login-card" class="card" style="max-width: 440px; margin: 40px auto; text-align: center;">
+                <h2 class="section-title">🔒 כניסת מנהל מערכת</h2>
+                <p class="section-subtitle">הזן את סיסמת המנהל האישית שלך (311745)</p>
+                <div class="form-group">
+                    <input type="password" id="admin-pass-input" class="form-control" placeholder="הקלד סיסמה..." style="text-align: center; font-size: 20px; letter-spacing: 4px;" onkeydown="if(event.key==='Enter') verifyAdminPassword()">
+                </div>
+                <button class="btn" style="width: 100%;" onclick="verifyAdminPassword()">כניסה ללוח הבקרה</button>
+            </div>
+
+            <div id="admin-dashboard" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 22px;">
+                    <div>
+                        <span class="badge">שליטה מלאה באתר</span>
+                        <h2 class="section-title">לוח בקרה וניהול - ARI DIGITAL MEDIA</h2>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-outline" onclick="exportSiteBackup()">📥 הורד קובץ גיבוי</button>
+                        <label class="btn btn-outline" style="cursor: pointer;">
+                            📤 שחזר מגיבוי
+                            <input type="file" accept=".json" style="display: none;" onchange="importSiteBackup(event)">
+                        </label>
+                        <button class="btn btn-outline" onclick="lockAdmin()">🔒 נעילה</button>
+                    </div>
+                </div>
+
+                <!-- סרגל מדדים וסטטיסטיקות (Analytics) -->
+                <div class="kpi-grid">
+                    <div class="kpi-box"><div class="kpi-num" id="kpi-posts">0</div><div class="kpi-label">מאמרים בבלוג</div></div>
+                    <div class="kpi-box"><div class="kpi-num" id="kpi-pods">0</div><div class="kpi-label">פרקי פודקאסט</div></div>
+                    <div class="kpi-box"><div class="kpi-num" id="kpi-views">0</div><div class="kpi-label">צפיות והאזנות</div></div>
+                    <div class="kpi-box"><div class="kpi-num" id="kpi-likes">0</div><div class="kpi-label">לייקים ❤️</div></div>
+                    <div class="kpi-box"><div class="kpi-num" id="kpi-subs">0</div><div class="kpi-label">מנויי ניוזלטר</div></div>
+                </div>
+
+                <div class="admin-grid">
+                    <!-- 1. לוגו ומיתוג -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 14px; font-size: 20px;">🎨 לוגו, תמונות ומיתוג</h3>
+                        <div class="form-group">
+                            <label>העלאת קובץ הלוגו שלך מהמחשב (נשמר לתמיד):</label>
+                            <input type="file" accept="image/*" class="form-control" onchange="uploadImageAsBase64(event, 'logo')">
+                        </div>
+                        <button class="btn btn-outline" style="margin-bottom: 14px; font-size: 13px; padding: 6px 12px;" onclick="resetLogoToDefault()">איפוס ללוגו ברירת מחדל</button>
+
+                        <div class="form-group">
+                            <label>החלפת תמונה ראשית בדף הבית:</label>
+                            <input type="file" accept="image/*" class="form-control" onchange="uploadImageAsBase64(event, 'hero')">
+                        </div>
+                        <div class="form-group">
+                            <label>כותרת ראשית בדף הבית:</label>
+                            <input type="text" id="admin-hero-title" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>טקסט עמוד אודות:</label>
+                            <textarea id="admin-about-text" class="form-control"></textarea>
+                        </div>
+                        <button class="btn" onclick="saveBrandingSettings()">💾 שמור מיתוג וטקסטים</button>
+                    </div>
+
+                    <!-- 2. פרסום פוסט לבלוג -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 14px; font-size: 20px;">✍️ פרסום פוסט חדש בבלוג</h3>
+                        <div class="form-group">
+                            <label>כותרת הפוסט:</label>
+                            <input type="text" id="post-title" class="form-control" placeholder="כותרת המאמר...">
+                        </div>
+                        <div class="form-group">
+                            <label>קטגוריה:</label>
+                            <select id="post-category" class="form-control">
+                                <option value="מחשבות ואמונה">מחשבות ואמונה</option>
+                                <option value="טכנולוגיה ומדיה">טכנולוגיה ומדיה</option>
+                                <option value="אישי">אישי</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>תמונה לפוסט (מהמחשב):</label>
+                            <input type="file" id="post-img-file" accept="image/*" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>תוכן המאמר:</label>
+                            <textarea id="post-body" class="form-control" placeholder="כתוב כאן את התוכן המלא..."></textarea>
+                        </div>
+                        <button class="btn" onclick="publishBlogPost()">🚀 פרסם פוסט בבלוג</button>
+                    </div>
+
+                    <!-- 3. פרסום פרק פודקאסט -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 14px; font-size: 20px;">🎙️ העלאת פרק פודקאסט</h3>
+                        <div class="form-group">
+                            <label>שם הפרק:</label>
+                            <input type="text" id="pod-title" class="form-control" placeholder="למשל: פרק 1 - פתיחה">
+                        </div>
+                        <div class="form-group">
+                            <label>קישור לקובץ שמע (MP3) או בחירת קובץ מהמחשב:</label>
+                            <input type="text" id="pod-audio-url" class="form-control" placeholder="הדבק קישור MP3 או בחר קובץ למטה..." style="margin-bottom: 8px;">
+                            <input type="file" id="pod-audio-file" accept="audio/*" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>תיאור הפרק:</label>
+                            <textarea id="pod-desc" class="form-control" placeholder="על מה מדברים בפרק?"></textarea>
+                        </div>
+                        <button class="btn" onclick="publishPodcast()">🎧 פרסם פרק פודקאסט</button>
+                    </div>
+
+                    <!-- 4. הגדרות Google OAuth + הודעות ומנויים -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 10px; font-size: 20px;">🔗 הגדרות Google OAuth & Supabase</h3>
+                        <div class="form-group">
+                            <label>Google Client ID (אופציונלי - לחיבור GSI ישיר):</label>
+                            <input type="text" id="google-client-id" class="form-control" placeholder="xxxx.apps.googleusercontent.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Supabase URL:</label>
+                            <input type="text" id="supa-url" class="form-control" placeholder="https://xxxx.supabase.co">
+                        </div>
+                        <div class="form-group">
+                            <label>Supabase Anon Key:</label>
+                            <input type="password" id="supa-key" class="form-control" placeholder="eyJhbGciOiJIUzI1NiIsInR5c...">
+                        </div>
+                        <button class="btn btn-outline" onclick="saveCloudConfig()" style="margin-bottom: 18px;">שמור הגדרות אימות ענן</button>
+
+                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 14px 0;">
+                        <h4 style="margin-bottom: 8px;">📬 פניות שהתקבלו ("צור קשר"):</h4>
+                        <div id="admin-messages-list" style="max-height: 160px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ================= נגן פודקאסט אולפני צף קבוע בתחתית ================= -->
+    <div id="sticky-audio-player">
+        <div style="display: flex; align-items: center; gap: 14px; min-width: 220px;">
+            <div class="eq-bars">
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: #38bdf8; font-weight: 700;">מתנגן כעת ב-ARI PODCAST</div>
+                <div id="sticky-player-title" style="font-weight: 700; font-size: 15px;">שם הפרק</div>
+            </div>
+        </div>
+
+        <audio id="global-audio-element" controls style="flex: 1; max-width: 460px; height: 38px;"></audio>
+
+        <div class="player-controls-extra">
+            <button class="player-mini-btn" onclick="skipAudio(-15)">↺ -15ש'</button>
+            <button class="player-mini-btn" onclick="skipAudio(15)">+15ש' ↻</button>
+            <button class="player-mini-btn" id="speed-btn" onclick="cycleAudioSpeed()">מהירות: 1x</button>
+            <button class="player-mini-btn" style="background: rgba(239,68,68,0.3);" onclick="closeStickyPlayer()">✖</button>
+        </div>
+    </div>
+
+    <footer>
+        כל הזכויות שמורות © 2026 <strong>ARI DIGITAL MEDIA</strong> | נבנה בהתאמה אישית ברמת PRO
+    </footer>
+
+    <script>
+        const ADMIN_PASS = "311745";
+        let isAdminUnlocked = false;
+        let supabaseClient = null;
+        let currentBlogCategory = 'הכל';
+        let currentAudioSpeed = 1;
+        let readerFontSize = 18;
+
+        // מסד נתונים מקומי מתקדם
+        let siteData = JSON.parse(localStorage.getItem('ari_media_db')) || {
+            logoBase64: "",
+            heroBase64: "",
+            heroTitle: "ברוכים הבאים ל-ARI DIGITAL MEDIA",
+            aboutText: `שלום וברוכים הבאים לעולם התוכן שלי.\n\nהאתר הזה הוא המקום שבו אני משלב את שתי התשוקות הגדולות שלי: כתיבה מהלב ויצירת תוכן קולי (פודקאסט). זו לא עוד פלטפורמה מסחרית רגילה, אלא מרחב אישי ואותנטי שבו אני משתף מחשבות, תובנות, סיפורים וחוויות מהזווית הייחודית שלי כאדם חרדי ויוצר תוכן.\n\nאני מזמין אתכם לקרוא, להאזין, להגיב ולהיות חלק מהמסע הזה.`,
+            posts: [],
+            podcasts: [],
+            messages: [],
+            subscribers: [],
+            savedIds: [],
+            googleAccounts: [
+                { name: "ארי (ARI)", email: "ari.digital.media@gmail.com", avatar: "https://ui-avatars.com/api/?name=ARI&background=0284c7&color=fff&bold=true" }
+            ],
+            googleClientId: "",
+            supaUrl: "",
+            supaKey: ""
+        };
+
+        if (!siteData.savedIds) siteData.savedIds = [];
+        if (!siteData.subscribers) siteData.subscribers = [];
+        if (!siteData.googleAccounts) {
+            siteData.googleAccounts = [
+                { name: "ארי (ARI)", email: "ari.digital.media@gmail.com", avatar: "https://ui-avatars.com/api/?name=ARI&background=0284c7&color=fff&bold=true" }
+            ];
+        }
+
+        function saveDB() {
+            try {
+                localStorage.setItem('ari_media_db', JSON.stringify(siteData));
+            } catch (e) {
+                showToast("⚠️ הקובץ גדול מדי לזיכרון הדפדפן. נסה תמונה קלה יותר.");
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-notification');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3500);
+        }
+
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
+            document.getElementById('reading-progress').style.width = scrolled + "%";
+        });
+
+        function toggleComfortMode() {
+            document.body.classList.toggle('reading-comfort');
+            showToast("📖 מצב נוחות קריאה עודכן");
+        }
+
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            const sec = document.getElementById('page-' + pageId);
+            const nav = document.getElementById('nav-' + pageId);
+            if (sec) sec.classList.add('active');
+            if (nav) nav.classList.add('active');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderAllContent();
+        }
+
+        // ================= מערכת התחברות GOOGLE (Account Chooser + GSI + Supabase) =================
+        function initCloudAuth() {
+            // 1. אתחול Supabase אם הוגדר
+            if (siteData.supaUrl && siteData.supaKey && window.supabase) {
+                try {
+                    supabaseClient = window.supabase.createClient(siteData.supaUrl, siteData.supaKey);
+                    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+                        if (session && session.user) {
+                            const u = session.user;
+                            applyGoogleLogin({
+                                name: u.user_metadata?.full_name || u.email.split('@')[0],
+                                email: u.email,
+                                avatar: u.user_metadata?.avatar_url || ''
+                            });
+                        }
+                    });
+                } catch (e) { console.error(e); }
+            }
+
+            // 2. אתחול Google Identity Services אם הוגדר Client ID
+            if (siteData.googleClientId && window.google) {
+                try {
+                    google.accounts.id.initialize({
+                        client_id: siteData.googleClientId,
+                        callback: handleGoogleJwtResponse
+                    });
+                    google.accounts.id.renderButton(
+                        document.getElementById("g_id_signin_container"),
+                        { theme: "outline", size: "large", shape: "pill", text: "continue_with" }
+                    );
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        function handleGoogleJwtResponse(response) {
+            try {
+                const base64Url = response.credential.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(c =>
+                    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+                ).join('')));
+
+                applyGoogleLogin({
+                    name: payload.name,
+                    email: payload.email,
+                    avatar: payload.picture
+                });
+            } catch (e) {
+                showToast("שגיאה בפענוח אימות Google");
+            }
+        }
+
+        async function openGoogleChooser() {
+            if (supabaseClient) {
+                showToast("מעביר להתחברות Google מאובטחת...");
+                const { error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: window.location.href }
+                });
+                if (!error) return;
+            }
+            renderSavedGoogleAccounts();
+            document.getElementById('google-auth-modal').style.display = 'flex';
+        }
+
+        function closeGoogleModal() {
+            document.getElementById('google-auth-modal').style.display = 'none';
+        }
+
+        function renderSavedGoogleAccounts() {
+            const container = document.getElementById('saved-google-accounts-list');
+            container.innerHTML = siteData.googleAccounts.map((acc, idx) => `
+                <div class="google-account-row" onclick="selectSavedGoogleAccount(${idx})">
+                    <img src="${acc.avatar}" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14.5px; color: var(--text-primary);">${acc.name}</div>
+                        <div style="font-size: 12.5px; color: var(--text-secondary);">${acc.email}</div>
+                    </div>
+                    <span style="font-size: 12px; color: var(--primary); font-weight: 700;">המשך ←</span>
+                </div>
+            `).join('');
+        }
+
+        function selectSavedGoogleAccount(index) {
+            const acc = siteData.googleAccounts[index];
+            if (acc) {
+                applyGoogleLogin(acc);
+                closeGoogleModal();
+            }
+        }
+
+        function confirmGoogleAccountLogin() {
+            const name = document.getElementById('g-modal-name').value.trim() || 'ארי';
+            const email = document.getElementById('g-modal-email').value.trim();
+            if (!email || !email.includes('@')) {
+                showToast("נא להזין כתובת Gmail תקינה");
+                return;
+            }
+            const newAcc = {
+                name: name,
+                email: email,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0284c7&color=fff&bold=true`
+            };
+            if (!siteData.googleAccounts.some(a => a.email === email)) {
+                siteData.googleAccounts.unshift(newAcc);
+                saveDB();
+            }
+            applyGoogleLogin(newAcc);
+            closeGoogleModal();
+        }
+
+        function applyGoogleLogin(user) {
+            localStorage.setItem('ari_google_user', JSON.stringify(user));
+            document.getElementById('user-logged-out-view').style.display = 'none';
+            document.getElementById('user-logged-in-view').style.display = 'block';
+            document.getElementById('user-name-display').innerText = user.name;
+            document.getElementById('user-email-display').innerText = user.email;
+            const avatarUrl = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0284c7&color=fff`;
+            document.getElementById('user-profile-pic').src = avatarUrl;
+
+            document.getElementById('nav-user-label').innerHTML = `
+                <img src="${avatarUrl}" class="nav-user-avatar">
+                <span>${user.name}</span>
+            `;
+            showToast(`✅ מחובר כעת עם חשבון Google של ${user.name}`);
+            renderAllContent();
+        }
+
+        function handleUserLogout() {
+            if (supabaseClient) supabaseClient.auth.signOut();
+            localStorage.removeItem('ari_google_user');
+            document.getElementById('user-logged-out-view').style.display = 'block';
+            document.getElementById('user-logged-in-view').style.display = 'none';
+            document.getElementById('nav-user-label').innerText = '👤 התחברות עם Google';
+            showToast("התנתקת מחשבון Google.");
+        }
+
+        // ================= הקראה קולית בעברית (Text-To-Speech) וקורא מאמרים =================
+        function speakArticle(title, body) {
+            if (!('speechSynthesis' in window)) {
+                showToast("הדפדפן שלך אינו תומך בהקראה קולית.");
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(title + ". " + body);
+            utterance.lang = 'he-IL';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+            showToast("🔊 מקריא כעת את המאמר...");
+        }
+
+        function openArticleReader(postId) {
+            const post = siteData.posts.find(p => p.id === postId);
+            if (!post) return;
+            post.views = (post.views || 0) + 1;
+            saveDB();
+
+            document.getElementById('reader-cat').innerText = post.category || 'כללי';
+            document.getElementById('reader-title').innerText = post.title;
+            document.getElementById('reader-meta').innerText = `📅 ${post.date}  •  ⏱️ ${post.readTime || 1} דק' קריאה  •  👁️ ${post.views} צפיות`;
+            document.getElementById('reader-body').innerText = post.body;
+
+            const imgEl = document.getElementById('reader-img');
+            if (post.image) {
+                imgEl.src = post.image;
+                imgEl.style.display = 'block';
+            } else {
+                imgEl.style.display = 'none';
+            }
+
+            document.getElementById('reader-tts-btn').onclick = () => speakArticle(post.title, post.body);
+            document.getElementById('article-reader-modal').style.display = 'flex';
+            renderAllContent();
+        }
+
+        function closeArticleReader() {
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            document.getElementById('article-reader-modal').style.display = 'none';
+        }
+
+        function adjustReaderFont(delta) {
+            readerFontSize = Math.min(28, Math.max(14, readerFontSize + delta));
+            document.getElementById('reader-body').style.fontSize = readerFontSize + 'px';
+        }
+
+        // ================= נגן פודקאסט אולפני =================
+        function playInStickyPlayer(podId) {
+            const pod = siteData.podcasts.find(p => p.id === podId);
+            if (!pod || !pod.audio) {
+                showToast("לפרק זה לא צורף קובץ שמע.");
+                return;
+            }
+            pod.plays = (pod.plays || 0) + 1;
+            saveDB();
+
+            const playerBar = document.getElementById('sticky-audio-player');
+            const audioEl = document.getElementById('global-audio-element');
+            document.getElementById('sticky-player-title').innerText = pod.title;
+            audioEl.src = pod.audio;
+            audioEl.playbackRate = currentAudioSpeed;
+            playerBar.style.display = 'flex';
+            audioEl.play();
+            renderAllContent();
+        }
+
+        function skipAudio(seconds) {
+            const audioEl = document.getElementById('global-audio-element');
+            if (audioEl) audioEl.currentTime = Math.max(0, audioEl.currentTime + seconds);
+        }
+
+        function cycleAudioSpeed() {
+            const speeds = [1, 1.25, 1.5, 2];
+            const nextIdx = (speeds.indexOf(currentAudioSpeed) + 1) % speeds.length;
+            currentAudioSpeed = speeds[nextIdx];
+            const audioEl = document.getElementById('global-audio-element');
+            if (audioEl) audioEl.playbackRate = currentAudioSpeed;
+            document.getElementById('speed-btn').innerText = `מהירות: ${currentAudioSpeed}x`;
+        }
+
+        function closeStickyPlayer() {
+            const audioEl = document.getElementById('global-audio-element');
+            audioEl.pause();
+            document.getElementById('sticky-audio-player').style.display = 'none';
+        }
+
+        // ================= מערכת ניהול (סיסמה 311745) =================
+        function verifyAdminPassword() {
+            const pass = document.getElementById('admin-pass-input').value.trim();
+            if (pass === ADMIN_PASS) {
+                isAdminUnlocked = true;
+                document.getElementById('admin-login-card').style.display = 'none';
+                document.getElementById('admin-dashboard').style.display = 'block';
+                document.getElementById('admin-pass-input').value = '';
+                document.getElementById('admin-hero-title').value = siteData.heroTitle;
+                document.getElementById('admin-about-text').value = siteData.aboutText;
+                document.getElementById('google-client-id').value = siteData.googleClientId || '';
+                document.getElementById('supa-url').value = siteData.supaUrl || '';
+                document.getElementById('supa-key').value = siteData.supaKey || '';
+                showToast("🔓 ברוך הבא ארי! מערכת הניהול פתוחה.");
+                renderAllContent();
+            } else {
+                showToast("❌ סיסמה שגויה!");
+            }
+        }
+
+        function lockAdmin() {
+            isAdminUnlocked = false;
+            document.getElementById('admin-login-card').style.display = 'block';
+            document.getElementById('admin-dashboard').style.display = 'none';
+            showToast("🔒 מערכת הניהול ננעלה.");
+            renderAllContent();
+        }
+
+        function uploadImageAsBase64(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (type === 'logo') {
+                    siteData.logoBase64 = e.target.result;
+                    showToast("✅ הלוגו הוטמע ונשמר קבוע באתר!");
+                } else if (type === 'hero') {
+                    siteData.heroBase64 = e.target.result;
+                    showToast("✅ תמונת דף הבית עודכנה!");
+                }
+                saveDB();
+                renderAllContent();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetLogoToDefault() {
+            siteData.logoBase64 = "";
+            saveDB();
+            renderAllContent();
+            showToast("הלוגו אופס לברירת המחדל.");
+        }
+
+        function saveBrandingSettings() {
+            siteData.heroTitle = document.getElementById('admin-hero-title').value;
+            siteData.aboutText = document.getElementById('admin-about-text').value;
+            saveDB();
+            renderAllContent();
+            showToast("💾 הגדרות המיתוג והטקסטים נשמרו!");
+        }
+
+        function saveCloudConfig() {
+            siteData.googleClientId = document.getElementById('google-client-id').value.trim();
+            siteData.supaUrl = document.getElementById('supa-url').value.trim();
+            siteData.supaKey = document.getElementById('supa-key').value.trim();
+            saveDB();
+            initCloudAuth();
+            showToast("🔗 הגדרות האימות והענן נשמרו!");
+        }
+
+        function exportSiteBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(siteData, null, 2));
+            const a = document.createElement('a');
+            a.setAttribute("href", dataStr);
+            a.setAttribute("download", "ari_digital_media_backup.json");
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast("📥 קובץ הגיבוי ירד למחשב שלך!");
+        }
+
+        function importSiteBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    siteData = imported;
+                    saveDB();
+                    renderAllContent();
+                    showToast("✅ האתר שוחזר מקובץ הגיבוי בהצלחה!");
+                } catch (err) {
+                    showToast("❌ קובץ גיבוי לא תקין.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ================= פרסום ואינטראקציה =================
+        function setBlogCategory(cat) {
+            currentBlogCategory = cat;
+            document.querySelectorAll('#blog-categories-bar .cat-pill').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText === cat);
+            });
+            renderAllContent();
+        }
+
+        function publishBlogPost() {
+            const title = document.getElementById('post-title').value.trim();
+            const category = document.getElementById('post-category').value;
+            const body = document.getElementById('post-body').value.trim();
+            const file = document.getElementById('post-img-file').files[0];
+
+            if (!title || !body) {
+                showToast("נא למלא כותרת ותוכן לפוסט.");
+                return;
+            }
+
+            const words = body.split(/\s+/).length;
+            const readTime = Math.max(1, Math.ceil(words / 180));
+
+            const savePost = (imgSrc) => {
+                siteData.posts.unshift({
+                    id: Date.now(),
+                    title,
+                    category,
+                    body,
+                    image: imgSrc || '',
+                    readTime,
+                    views: 0,
+                    likes: 0,
+                    comments: [],
+                    date: new Date().toLocaleDateString('he-IL')
+                });
+                saveDB();
+                document.getElementById('post-title').value = '';
+                document.getElementById('post-body').value = '';
+                document.getElementById('post-img-file').value = '';
+                showToast("🚀 הפוסט פורסם בהצלחה בבלוג!");
+                navigateTo('blog');
+            };
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => savePost(e.target.result);
+                reader.readAsDataURL(file);
+            } else {
+                savePost('');
+            }
+        }
+
+        function publishPodcast() {
+            const title = document.getElementById('pod-title').value.trim();
+            const desc = document.getElementById('pod-desc').value.trim();
+            const url = document.getElementById('pod-audio-url').value.trim();
+            const file = document.getElementById('pod-audio-file').files[0];
+
+            if (!title) {
+                showToast("נא להזין שם לפרק הפודקאסט.");
+                return;
+            }
+
+            const savePod = (audioSrc) => {
+                siteData.podcasts.unshift({
+                    id: Date.now(),
+                    title,
+                    desc,
+                    audio: audioSrc,
+                    plays: 0,
+                    likes: 0,
+                    date: new Date().toLocaleDateString('he-IL')
+                });
+                saveDB();
+                document.getElementById('pod-title').value = '';
+                document.getElementById('pod-desc').value = '';
+                document.getElementById('pod-audio-url').value = '';
+                document.getElementById('pod-audio-file').value = '';
+                showToast("🎧 פרק הפודקאסט פורסם בהצלחה!");
+                navigateTo('podcast');
+            };
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => savePod(e.target.result);
+                reader.readAsDataURL(file);
+            } else {
+                savePod(url);
+            }
+        }
+
+        function likeItem(type, id) {
+            const list = type === 'post' ? siteData.posts : siteData.podcasts;
+            const item = list.find(i => i.id === id);
+            if (item) {
+                item.likes = (item.likes || 0) + 1;
+                saveDB();
+                renderAllContent();
+            }
+        }
+
+        function toggleSaveItem(id) {
+            const idx = siteData.savedIds.indexOf(id);
+            if (idx === -1) {
+                siteData.savedIds.push(id);
+                showToast("🔖 נשמר בספרייה האישית שלך!");
+            } else {
+                siteData.savedIds.splice(idx, 1);
+                showToast("הוסר מהמועדפים.");
+            }
+            saveDB();
+            renderAllContent();
+        }
+
+        function addComment(postId) {
+            const input = document.getElementById('comment-input-' + postId);
+            const text = input.value.trim();
+            if (!text) return;
+
+            const savedUser = JSON.parse(localStorage.getItem('ari_google_user'));
+            const author = savedUser ? savedUser.name : 'אורח';
+
+            const post = siteData.posts.find(p => p.id === postId);
+            if (post) {
+                if (!post.comments) post.comments = [];
+                post.comments.push({ author, text });
+                saveDB();
+                renderAllContent();
+                showToast("💬 התגובה פורסמה!");
+            }
+        }
+
+        function subscribeNewsletter(e) {
+            e.preventDefault();
+            const email = document.getElementById('newsletter-email').value.trim();
+            if (!email) return;
+            siteData.subscribers.push({ email, date: new Date().toLocaleDateString('he-IL') });
+            saveDB();
+            e.target.reset();
+            showToast("🎉 תודה! נרשמת לעדכונים של ARI DIGITAL MEDIA.");
+            renderAllContent();
+        }
+
+        function shareWhatsApp(title) {
+            const text = encodeURIComponent(`מוזמנים לקרוא ולהאזין ל-"${title}" באתר ARI DIGITAL MEDIA!`);
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+
+        function deleteItem(type, id) {
+            if (!confirm('האם למחוק פריט זה לצמיתות?')) return;
+            if (type === 'post') siteData.posts = siteData.posts.filter(p => p.id !== id);
+            else siteData.podcasts = siteData.podcasts.filter(p => p.id !== id);
+            saveDB();
+            renderAllContent();
+            showToast("🗑️ הפריט נמחק.");
+        }
+
+        function submitContactForm(e) {
+            e.preventDefault();
+            siteData.messages.unshift({
+                id: Date.now(),
+                name: document.getElementById('contact-name').value.trim(),
+                info: document.getElementById('contact-info').value.trim(),
+                msg: document.getElementById('contact-message').value.trim(),
+                date: new Date().toLocaleString('he-IL')
+            });
+            saveDB();
+            e.target.reset();
+            showToast("✉️ ההודעה נשלחה אל ARI בהצלחה!");
+            renderAllContent();
+        }
+
+        // ================= רינדור כל העמודים והנתונים =================
+        function renderAllContent() {
+            const logoImg = document.getElementById('header-logo-img');
+            const defLogo = document.getElementById('header-default-logo');
+            if (siteData.logoBase64) {
+                logoImg.src = siteData.logoBase64;
+                logoImg.style.display = 'block';
+                defLogo.style.display = 'none';
+            } else {
+                logoImg.style.display = 'none';
+                defLogo.style.display = 'flex';
+            }
+
+            if (siteData.heroBase64) document.getElementById('hero-custom-img').src = siteData.heroBase64;
+            document.getElementById('hero-title-display').innerText = siteData.heroTitle;
+            document.getElementById('about-content-display').innerText = siteData.aboutText;
+
+            // עדכון מדדי מנהל (KPIs)
+            const totalViews = siteData.posts.reduce((s, p) => s + (p.views || 0), 0) +
+                               siteData.podcasts.reduce((s, p) => s + (p.plays || 0), 0);
+            const totalLikes = siteData.posts.reduce((s, p) => s + (p.likes || 0), 0) +
+                               siteData.podcasts.reduce((s, p) => s + (p.likes || 0), 0);
+
+            if (document.getElementById('kpi-posts')) {
+                document.getElementById('kpi-posts').innerText = siteData.posts.length;
+                document.getElementById('kpi-pods').innerText = siteData.podcasts.length;
+                document.getElementById('kpi-views').innerText = totalViews;
+                document.getElementById('kpi-likes').innerText = totalLikes;
+                document.getElementById('kpi-subs').innerText = siteData.subscribers.length;
+            }
+
+            // רינדור בלוג
+            const blogQuery = (document.getElementById('blog-search')?.value || '').toLowerCase();
+            const filteredPosts = siteData.posts.filter(p => {
+                const matchCat = currentBlogCategory === 'הכל' || p.category === currentBlogCategory;
+                const matchText = p.title.toLowerCase().includes(blogQuery) || p.body.toLowerCase().includes(blogQuery);
+                return matchCat && matchText;
+            });
+
+            const blogContainer = document.getElementById('blog-container');
+            if (filteredPosts.length === 0) {
+                blogContainer.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;">
+                    <h3>עדיין אין מאמרים בקטגוריה זו</h3>
+                    <p>היכנס ל"⚙️ ניהול" (סיסמה 311745) כדי לפרסם מאמר חדש!</p>
+                </div>`;
+            } else {
+                blogContainer.innerHTML = filteredPosts.map(post => {
+                    const isSaved = siteData.savedIds.includes(post.id);
+                    const commentsHtml = (post.comments || []).map(c =>
+                        `<div style="background:var(--bg-body); padding:6px 10px; border-radius:8px; margin-bottom:5px; font-size:12.5px;"><strong>${c.author}:</strong> ${c.text}</div>`
+                    ).join('');
+
+                    return `
+                    <article class="item-card">
+                        ${post.image ? `<img src="${post.image}" alt="${post.title}" onclick="openArticleReader(${post.id})" style="cursor:pointer;">` : ''}
+                        <div class="item-card-body">
+                            <div class="item-meta">
+                                <span>🏷️ ${post.category || 'כללי'} • ${post.date}</span>
+                                <span>⏱️ ${post.readTime || 1} דק' • 👁️ ${post.views || 0}</span>
+                            </div>
+                            <h3 class="item-title" onclick="openArticleReader(${post.id})">${post.title}</h3>
+                            <div class="item-text">${post.body.length > 180 ? post.body.substring(0, 180) + '...' : post.body}</div>
+                            
+                            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                                <button class="action-chip" onclick="openArticleReader(${post.id})">📖 קריאה מלאה</button>
+                                <button class="action-chip" onclick="speakArticle('${post.title.replace(/'/g, "")}', \`${post.body.replace(/`/g, "")}\`)">🔊 הקרא</button>
+                            </div>
+
+                            <div class="item-actions">
+                                <div style="display:flex; gap:6px;">
+                                    <button class="action-chip" onclick="likeItem('post', ${post.id})">❤️ ${post.likes || 0}</button>
+                                    <button class="action-chip ${isSaved ? 'saved' : ''}" onclick="toggleSaveItem(${post.id})">🔖</button>
+                                    <button class="action-chip" onclick="shareWhatsApp('${post.title.replace(/'/g, "")}')">📲</button>
+                                </div>
+                                ${isAdminUnlocked ? `<button class="btn btn-danger" onclick="deleteItem('post', ${post.id})">🗑️</button>` : ''}
+                            </div>
+
+                            <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);">
+                                ${commentsHtml}
+                                <div style="display:flex; gap:6px; margin-top:6px;">
+                                    <input type="text" id="comment-input-${post.id}" class="form-control" style="padding:6px 10px; font-size:13px;" placeholder="כתוב תגובה...">
+                                    <button class="btn" style="padding:6px 12px; font-size:13px;" onclick="addComment(${post.id})">שלח</button>
+                                </div>
+                            </div>
+                        </div>
+                    </article>`;
+                }).join('');
+            }
+
+            // רינדור פודקאסט
+            const podQuery = (document.getElementById('podcast-search')?.value || '').toLowerCase();
+            const filteredPods = siteData.podcasts.filter(p =>
+                p.title.toLowerCase().includes(podQuery) || (p.desc || '').toLowerCase().includes(podQuery)
+            );
+
+            const podContainer = document.getElementById('podcast-container');
+            if (filteredPods.length === 0) {
+                podContainer.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;">
+                    <h3>עדיין לא הועלו פרקי פודקאסט</h3>
+                    <p>היכנס ל"⚙️ ניהול" כדי להעלות פרק פודקאסט חדש!</p>
+                </div>`;
+            } else {
+                podContainer.innerHTML = filteredPods.map(pod => {
+                    const isSaved = siteData.savedIds.includes(pod.id);
+                    return `
+                    <article class="item-card">
+                        <div class="item-card-body">
+                            <div class="item-meta">
+                                <span>🎧 ${pod.date}</span>
+                                <span>▶️ ${pod.plays || 0} האזנות</span>
+                            </div>
+                            <h3 class="item-title">${pod.title}</h3>
+                            <div class="item-text">${pod.desc}</div>
+                            <button class="btn" style="width:100%; margin-bottom:14px;" onclick="playInStickyPlayer(${pod.id})">
+                                ▶️ האזן עכשיו בנגן האולפני
+                            </button>
+                            <div class="item-actions">
+                                <div style="display:flex; gap:6px;">
+                                    <button class="action-chip" onclick="likeItem('podcast', ${pod.id})">❤️ ${pod.likes || 0}</button>
+                                    <button class="action-chip ${isSaved ? 'saved' : ''}" onclick="toggleSaveItem(${pod.id})">🔖</button>
+                                    <button class="action-chip" onclick="shareWhatsApp('${pod.title.replace(/'/g, "")}')">📲 שתף</button>
+                                </div>
+                                ${isAdminUnlocked ? `<button class="btn btn-danger" onclick="deleteItem('podcast', ${pod.id})">🗑️</button>` : ''}
+                            </div>
+                        </div>
+                    </article>`;
+                }).join('');
+            }
+
+            // תקצירים בדף הבית
+            document.getElementById('home-latest-blog').innerHTML = siteData.posts.length
+                ? `<p><strong>${siteData.posts[0].title}</strong> (${siteData.posts[0].date})</p><p style="font-size:14px; color:var(--text-secondary); margin-top:4px;">${siteData.posts[0].body.substring(0, 95)}...</p>`
+                : `<p style="color:var(--text-muted); font-size:14px;">טרם פורסמו פוסטים בבלוג.</p>`;
+
+            document.getElementById('home-latest-podcast').innerHTML = siteData.podcasts.length
+                ? `<p><strong>${siteData.podcasts[0].title}</strong> (${siteData.podcasts[0].date})</p><p style="font-size:14px; color:var(--text-secondary); margin-top:4px;">${siteData.podcasts[0].desc.substring(0, 95)}...</p>`
+                : `<p style="color:var(--text-muted); font-size:14px;">טרם הועלו פרקי פודקאסט.</p>`;
+
+            // מועדפים באזור האישי
+            const savedBox = document.getElementById('user-saved-items');
+            const allContent = [
+                ...siteData.posts.map(p => ({ ...p, kind: '✍️ מאמר בבלוג' })),
+                ...siteData.podcasts.map(p => ({ ...p, kind: '🎙️ פרק פודקאסט' }))
+            ];
+            const savedList = allContent.filter(item => siteData.savedIds.includes(item.id));
+            if (savedBox) {
+                savedBox.innerHTML = savedList.length === 0
+                    ? `<p style="color:var(--text-muted); font-size:14px;">עדיין לא שמרת תכנים. לחץ על 🔖 ליד כל פוסט או פרק כדי לשמור אותו בחשבון שלך!</p>`
+                    : savedList.map(item => `
+                        <div style="padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span class="badge" style="margin-bottom:0; margin-left:8px;">${item.kind}</span>
+                                <strong>${item.title}</strong>
+                            </div>
+                            <button class="btn btn-outline" style="padding:4px 10px; font-size:12px;" onclick="toggleSaveItem(${item.id})">הסר</button>
+                        </div>
+                    `).join('');
+            }
+
+            // ארכיון
+            const archiveList = document.getElementById('archive-list');
+            const sortedAll = allContent.sort((a, b) => b.id - a.id);
+            archiveList.innerHTML = sortedAll.length === 0
+                ? `<p style="color:var(--text-muted);">הארכיון ריק כרגע.</p>`
+                : sortedAll.map(item => `
+                    <div style="padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span class="badge" style="margin-bottom: 0; margin-left: 8px;">${item.kind}</span>
+                            <strong>${item.title}</strong>
+                        </div>
+                        <span style="font-size: 13px; color: var(--text-muted);">${item.date}</span>
+                    </div>
+                `).join('');
+
+            // הודעות צור קשר בניהול
+            const msgList = document.getElementById('admin-messages-list');
+            if (msgList) {
+                msgList.innerHTML = siteData.messages.length === 0
+                    ? `<p style="font-size: 13px; color: var(--text-muted);">אין פניות חדשות כרגע.</p>`
+                    : siteData.messages.map(m => `
+                        <div style="background: var(--bg-body); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 13px;">
+                            <strong>${m.name} (${m.info})</strong> <span style="color:var(--text-muted);">${m.date}</span>
+                            <p style="margin-top: 4px;">${m.msg}</p>
+                        </div>
+                    `).join('');
+            }
+        }
+
+        window.onload = function() {
+            initCloudAuth();
+            const savedGoogleUser = localStorage.getItem('ari_google_user');
+            if (savedGoogleUser) {
+                applyGoogleLogin(JSON.parse(savedGoogleUser));
+            }
+            renderAllContent();
+        };
+    </script>
+</body>
+</html>
